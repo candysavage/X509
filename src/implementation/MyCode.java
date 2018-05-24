@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
@@ -21,7 +22,9 @@ import java.util.Enumeration;
 
 import javax.security.auth.x500.X500Principal;
 
-import org.bouncycastle.x509.X509V3CertificateGenerator;
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.cert.X509v3CertificateBuilder;
 
 import code.GuiException;
 import x509.v3.CodeV3;
@@ -200,40 +203,93 @@ public class MyCode extends CodeV3 {
 		}
 	}
 
+	/*
+	 * TESTING TESTING TESTING
+	 * *****************************************************************************
+	 * *********************************************
+	 */
 	@Override
 	public int loadKeypair(String keyPairName) {
 		X509Certificate cert;
 		String name;
 		Enumeration<String> aliases;
+		this.selected = keyPairName;
+
 		try {
 			cert = (X509Certificate) myKeyStore.getCertificate(keyPairName);
-			
+
 			this.access.setIssuer(cert.getIssuerX500Principal().getName());
 			this.access.setSubject(cert.getSubjectX500Principal().getName());
 			this.access.setNotAfter(cert.getNotAfter());
 			this.access.setNotBefore(cert.getNotBefore());
 			this.access.setIssuerSignatureAlgorithm(cert.getSigAlgName());
 			this.access.setSerialNumber(cert.getSerialNumber().toString());
-			this.access.setVersion(cert.getVersion());										// TEST ?
-			
-			selected = keyPairName;
-			X500Principal etfPrincipal = ((X509Certificate) myKeyStore.getCertificate("etfrootca")).getIssuerX500Principal();
+			this.access.setVersion(cert.getVersion()); // TEST ?
+
+			X500Principal etfPrincipal = ((X509Certificate) myKeyStore.getCertificate("etfrootca"))
+					.getIssuerX500Principal();
 			X500Principal tempPrincipal;
 			X509Certificate tempCert;
-			
+
 			tempCert = cert;
 			tempPrincipal = cert.getIssuerX500Principal();
 			aliases = myKeyStore.aliases();
-			
-			if
-			
-			
-			
+
+			if (myKeyStore.entryInstanceOf(keyPairName, KeyStore.TrustedCertificateEntry.class))
+				return 2;
+			else {
+				while (true) {
+					if (tempCert.getSubjectX500Principal().equals(tempPrincipal)) {
+						if (tempCert.getIssuerX500Principal().equals(etfPrincipal))
+							return 1;
+						else
+							return 0;
+					} else {
+						if (aliases.hasMoreElements()) {
+							name = aliases.nextElement();
+							tempCert = (X509Certificate) myKeyStore.getCertificate(name);
+							tempPrincipal = tempCert.getIssuerX500Principal();
+						} else
+							aliases = this.loadLocalKeystore();
+					}
+				}
+			}
+
+		} catch (KeyStoreException e) {
+			e.printStackTrace();
+			return -1;
 		}
-		
-		
-		
-		return 0;
+	}
+	/*
+	 *******************************************************************************************************************
+	 */
+
+	@Override
+	public boolean saveKeypair(String keyPairName) {
+		try {
+			KeyPairGenerator kpg = KeyPairGenerator.getInstance(this.access.getPublicKeyAlgorithm());
+			Date startDate = this.access.getNotBefore();
+			Date expiryDate = this.access.getNotAfter();
+			String serialNumber = this.access.getSerialNumber();
+			KeyPair keyPair = kpg.generateKeyPair();
+			PrivateKey caKey = keyPair.getPrivate();
+			SubjectPublicKeyInfo subPubKeyInfo = SubjectPublicKeyInfo.getInstance(keyPair.getPublic().getEncoded());
+
+			X500Name subjectName = new X500Name(this.access.getSubject());
+			X500Name issuerName = new X500Name(this.access.getIssuer());
+
+			X509v3CertificateBuilder v3CertGen = new X509v3CertificateBuilder(issuerName, new BigInteger(serialNumber),
+					startDate, expiryDate, subjectName, subPubKeyInfo);
+			
+			
+			
+
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return false;
 	}
 
 	@Override
@@ -249,7 +305,7 @@ public class MyCode extends CodeV3 {
 	}
 
 	@Override
-	public boolean exportCertificate(String arg0, String arg1, int arg2, int arg3) {
+	public boolean exportCertificate(String file, String keyPairName, int encoding, int format) {
 		// TODO Auto-generated method stub
 		return false;
 	}
@@ -276,25 +332,6 @@ public class MyCode extends CodeV3 {
 	public String importCSR(String arg0) {
 		// TODO Auto-generated method stub
 		return null;
-	}
-
-	@Override
-	public boolean saveKeypair(String arg0) {
-		try {
-			KeyPairGenerator kpg = KeyPairGenerator.getInstance(this.access.getPublicKeyAlgorithm());
-			Date startDate = this.access.getNotBefore();
-			Date expiryDate = this.access.getNotAfter();
-			String serialNumber = this.access.getSerialNumber();
-			KeyPair keyPair = kpg.generateKeyPair();
-			PrivateKey caKey = keyPair.getPrivate();
-			
-			X509V3CertificateGenerator certGen = new X509V3CertificateGenerator();
-		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		return false;
 	}
 
 	@Override
