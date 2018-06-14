@@ -12,7 +12,6 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
-import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateEncodingException;
@@ -46,7 +45,6 @@ import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
-import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 
 import code.GuiException;
@@ -267,9 +265,10 @@ public class MyCode extends CodeV3 {
 		this.access.setIssuerSignatureAlgorithm(cert.getSigAlgName());
 		this.access.setSerialNumber(cert.getSerialNumber().toString());
 		this.access.setVersion(Constants.V3);
+
 		// System.out.println(cert.getPublicKey().getAlgorithm());
 		// this.access.setPublicKeyAlgorithm((String)cert.getPublicKey().getAlgorithm());
-
+		
 		X500Principal etfPrincipal = ((X509Certificate) keyStoreHandler.getCertificate("etfrootca"))
 				.getIssuerX500Principal();
 		X500Principal tempPrincipal;
@@ -315,7 +314,7 @@ public class MyCode extends CodeV3 {
 			Date expiryDate = this.access.getNotAfter();
 			String serialNumber = this.access.getSerialNumber();
 			KeyPair keyPair = kpg.generateKeyPair();
-			PrivateKey caKey = keyPair.getPrivate();
+			// PrivateKey caKey = keyPair.getPrivate();
 			SubjectPublicKeyInfo subPubKeyInfo = SubjectPublicKeyInfo.getInstance(keyPair.getPublic().getEncoded());
 
 			X500Name subjectName = new X500Name(this.access.getSubject());
@@ -329,6 +328,7 @@ public class MyCode extends CodeV3 {
 			isCritical[0] = this.access.isCritical(Constants.SKID);
 			isCritical[1] = this.access.isCritical(Constants.SAN);
 			isCritical[2] = this.access.isCritical(Constants.EKU);
+
 			JcaX509ExtensionUtils extUtils = new JcaX509ExtensionUtils();
 			v3CertGen.addExtension(Extension.subjectKeyIdentifier, isCritical[0],
 					extUtils.createSubjectKeyIdentifier(keyPair.getPublic()));
@@ -370,6 +370,7 @@ public class MyCode extends CodeV3 {
 
 			String[] subjectAltNames = this.access.getAlternativeName(Constants.SAN);
 			List<GeneralName> altNames = new ArrayList<GeneralName>();
+			
 			for (String altName : subjectAltNames) {
 				if (isValidEmail(altName)) {
 					altNames.add(new GeneralName(GeneralName.rfc822Name, altName));
@@ -383,10 +384,10 @@ public class MyCode extends CodeV3 {
 
 			GeneralNames SAN = GeneralNames
 					.getInstance(new DERSequence((GeneralName[]) altNames.toArray(new GeneralName[] {})));
-			v3CertGen.addExtension(Extension.subjectAlternativeName, false, SAN);
+			v3CertGen.addExtension(Extension.subjectAlternativeName, isCritical[1], SAN);
 
 			// SAVE CERTIFICATE
-			// *********************************************************************8
+			// *********************************************************************+
 
 		} catch (NoSuchAlgorithmException | CertIOException e) {
 			e.printStackTrace();
@@ -478,6 +479,7 @@ public class MyCode extends CodeV3 {
 
 	@Override
 	public boolean signCSR(String file, String keyPairName, String algorithm) {
+	    //PKCS10CertificationRequest pk10Holder = new PKCS10CertificationRequest(inputCSR);
 
 		return false;
 	}
