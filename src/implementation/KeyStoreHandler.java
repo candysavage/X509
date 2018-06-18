@@ -99,10 +99,12 @@ public class KeyStoreHandler {
 
 	public void setCertificateEntry(String keyPairName, X509Certificate cert) throws KeyStoreException {
 		myKeyStore.setCertificateEntry(keyPairName, cert);
+		this.store();
 	}
 
-	public void setKeyEntry(String keyPairName, Key key, char[] password, Certificate[] cert) throws KeyStoreException {
+	public void setKeyEntry(String keyPairName, Key key, Certificate[] cert) throws KeyStoreException {
 		myKeyStore.setKeyEntry(keyPairName, key, password, cert);
+		this.store();
 	}
 
 	public void reset() {
@@ -130,4 +132,7 @@ public class KeyStoreHandler {
 		return null;
 	}
 
+	public X509Certificate getRootCert() {
+		return this.getCertificate("etfrootca");
+	}
 }
